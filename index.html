@@ -577,38 +577,32 @@ function showStatus(msg, color){
 }
 
 async function gasCall(body){
-  // Google Apps Script requires a specific approach to avoid CORS issues
-  // Use a script tag (JSONP-style) for GET requests
-  if(body.action === 'load' || body.action === 'ping'){
-    return new Promise((resolve, reject) => {
-      const cbName = '_gascb_' + Date.now();
-      const script = document.createElement('script');
-      const timeout = setTimeout(() => {
-        delete window[cbName];
-        document.head.removeChild(script);
-        reject(new Error('Timeout'));
-      }, 15000);
-      window[cbName] = (data) => {
-        clearTimeout(timeout);
-        delete window[cbName];
-        document.head.removeChild(script);
-        resolve(data);
-      };
-      script.src = GAS_URL + '?action=' + body.action + '&callback=' + cbName;
-      script.onerror = () => {
-        clearTimeout(timeout);
-        delete window[cbName];
-        reject(new Error('Script load failed'));
-      };
-      document.head.appendChild(script);
-    });
-  }
-  // For writes use fetch with no headers (avoids preflight)
-  const form = new FormData();
-  Object.entries(body).forEach(([k,v]) => form.append(k, v));
-  const r = await fetch(GAS_URL, {method:'POST', body: form, redirect:'follow'});
-  const text = await r.text();
-  try{ return JSON.parse(text); }catch(e){ return {ok:true}; }
+  // Use JSONP for ALL calls — avoids CORS and POST redirect issues entirely
+  return new Promise((resolve, reject) => {
+    const cbName = '_gascb_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+    const script = document.createElement('script');
+    const timeout = setTimeout(() => {
+      delete window[cbName];
+      if(document.head.contains(script)) document.head.removeChild(script);
+      reject(new Error('Timeout'));
+    }, 20000);
+    window[cbName] = (data) => {
+      clearTimeout(timeout);
+      delete window[cbName];
+      if(document.head.contains(script)) document.head.removeChild(script);
+      resolve(data);
+    };
+    const params = new URLSearchParams({callback: cbName});
+    Object.entries(body).forEach(([k,v]) => params.append(k, typeof v === 'object' ? JSON.stringify(v) : v));
+    script.src = GAS_URL + '?' + params.toString();
+    script.onerror = () => {
+      clearTimeout(timeout);
+      delete window[cbName];
+      if(document.head.contains(script)) document.head.removeChild(script);
+      reject(new Error('Script load failed'));
+    };
+    document.head.appendChild(script);
+  });
 }
 
 async function loadData(){
