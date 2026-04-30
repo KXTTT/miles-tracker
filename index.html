@@ -689,6 +689,69 @@ async function runDiagnostic(){
   }
 }
 
+async function addTransaction(){
+  const date=document.getElementById('inp-date').value;
+  const merchant=document.getElementById('inp-merchant').value.trim();
+  const cat=document.getElementById('inp-cat').value;
+  const card=document.getElementById('inp-card').value;
+  const amount=parseFloat(document.getElementById('inp-amount').value);
+  if(card==='__new__'){promptNewCard();return}
+  if(!date||!merchant||isNaN(amount)||amount<=0){alert('Please fill in all fields.');return}
+  const txnId=Date.now().toString();
+  const miles=computeMilesCapped(card,cat,amount,date,null);
+  const expiry=computeExpiry(card,date);
+  const txn={id:txnId,date,merchant,category:cat,card,amount,miles,expiry};
+  transactions.push(txn);
+  document.getElementById('inp-merchant').value='';
+  document.getElementById('inp-amount').value='';
+  ['miles-preview','caps-note','promo-note','warn-note'].forEach(id=>document.getElementById(id).textContent='');
+  renderAll();
+  await saveTxn(txn);
+}
+
+async function promptNewCard(){
+  const name=prompt('Card name:');if(!name){populateCardSelect();return}
+  const mpd=parseFloat(prompt(`Base miles per dollar for "${name}":`)||'1.2');
+  const expY=parseInt(prompt('Miles expiry in years (0 = never):')||'3');
+  const bt=(prompt('Cap resets by "calendar" or "statement" month?')||'calendar').toLowerCase();
+  const capAmt=parseFloat(prompt('Monthly bonus cap in S$ (0 if no cap):')||'0');
+  customCards[name]={
+    base:mpd||1.2,color:'#534AB7',
+    capReset:bt.includes('cal')?'calendar':'statement',
+    expiryYears:expY||null,expiry:expY?`Expire ${expY} year(s) from earn`:'Never expire',
+    categories:{},
+    caps:capAmt>0?[{label:'Bonus cap',categories:['online','contactless','dining','shopping','transport','travel','others'],capSGD:capAmt}]:[],
+    capsLabel:''
+  };
+  await saveData();
+  populateCardSelect();document.getElementById('inp-card').value=name;renderAll();
+}
+
+async function deleteTxn(id){
+  await deleteFromCloud(id);
+  transactions=transactions.filter(t=>t.id!==id);
+  renderAll();
+}
+
+function exportCSV(){
+  if(!transactions.length){alert('No transactions to export.');return}
+  const CAT_LABELS={online:'Online (SGD)',contactless:'Contactless',ocbc_promo:'OCBC 6 mpd promo',regional:'Regional (MY/ID/TH/VN)',overseas:'Other overseas (FCY)',dining:'Dining',travel:'Travel',groceries:'Groceries',shopping:'Shopping',transport:'Transport/Petrol',others:'Others'};
+  const csv=['Date,Merchant,Category,Card,Amount (SGD),Miles,Expiry',
+    ...[...transactions].sort((a,b)=>b.date.localeCompare(a.date))
+      .map(t=>[t.date,`"${t.merchant}"`,CAT_LABELS[t.category]||t.category,`"${t.card}"`,t.amount.toFixed(2),t.miles,t.expiry].join(','))
+  ].join('\n');
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='sg_miles_tracker.csv';a.click();
+}
+
+function renderAll(){renderMetrics();renderFilterTabs();renderTxns();renderSettings()}
+
+document.getElementById('inp-amount').addEventListener('input',updatePreview);
+document.getElementById('inp-card').addEventListener('change',()=>{
+  if(document.getElementById('inp-card').value==='__new__')promptNewCard();
+  else updatePreview();
+});
+document.getElementById('inp-cat').addEventListener('change',updatePreview);
+
 (async()=>{await loadData();initDate();populateCardSelect();renderAll();})();
 
 </script>
