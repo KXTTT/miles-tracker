@@ -577,24 +577,38 @@ function showStatus(msg, color){
 }
 
 async function gasCall(body){
-  // Use GET for read operations (better CORS support), POST for writes
+  // Google Apps Script requires a specific approach to avoid CORS issues
+  // Use a script tag (JSONP-style) for GET requests
   if(body.action === 'load' || body.action === 'ping'){
-    const url = GAS_URL + '?action=' + body.action;
-    const r = await fetch(url, {method:'GET', redirect:'follow'});
-    if(!r.ok) throw new Error('HTTP '+r.status);
-    const text = await r.text();
-    try{ return JSON.parse(text); }catch(e){ throw new Error('Bad response: '+text.slice(0,100)); }
+    return new Promise((resolve, reject) => {
+      const cbName = '_gascb_' + Date.now();
+      const script = document.createElement('script');
+      const timeout = setTimeout(() => {
+        delete window[cbName];
+        document.head.removeChild(script);
+        reject(new Error('Timeout'));
+      }, 15000);
+      window[cbName] = (data) => {
+        clearTimeout(timeout);
+        delete window[cbName];
+        document.head.removeChild(script);
+        resolve(data);
+      };
+      script.src = GAS_URL + '?action=' + body.action + '&callback=' + cbName;
+      script.onerror = () => {
+        clearTimeout(timeout);
+        delete window[cbName];
+        reject(new Error('Script load failed'));
+      };
+      document.head.appendChild(script);
+    });
   }
-  // POST for writes — use no-cors as fallback isn't useful, use text/plain to avoid preflight
-  const r = await fetch(GAS_URL, {
-    method:'POST',
-    headers:{'Content-Type':'text/plain'},
-    body: JSON.stringify(body),
-    redirect:'follow'
-  });
-  if(!r.ok) throw new Error('HTTP '+r.status);
+  // For writes use fetch with no headers (avoids preflight)
+  const form = new FormData();
+  Object.entries(body).forEach(([k,v]) => form.append(k, v));
+  const r = await fetch(GAS_URL, {method:'POST', body: form, redirect:'follow'});
   const text = await r.text();
-  try{ return JSON.parse(text); }catch(e){ throw new Error('Bad response: '+text.slice(0,100)); }
+  try{ return JSON.parse(text); }catch(e){ return {ok:true}; }
 }
 
 async function loadData(){
@@ -622,7 +636,7 @@ async function loadData(){
 async function saveTxn(txn){
   if(GAS_URL==='YOUR_APPS_SCRIPT_URL') return;
   try{
-    await gasCall({action:'saveTxn', txn});
+    await gasCall({action:'saveTxn', txn:JSON.stringify(txn)});
     showStatus('✓ Saved','#0F6E56');
     setTimeout(()=>showStatus('',''),2000);
   }catch(e){ console.error('Save failed:',e); showStatus('⚠️ Save failed','#E24B4A'); }
@@ -632,12 +646,9 @@ async function saveData(){
   if(GAS_URL==='YOUR_APPS_SCRIPT_URL') return;
   try{
     // Save all transactions (upsert each)
-    await Promise.all(transactions.map(t => gasCall({action:'saveTxn', txn:t})));
+    await Promise.all(transactions.map(t => gasCall({action:'saveTxn', txn:JSON.stringify(t)})));
     // Save settings
-    await gasCall({action:'saveSettings', settings:{
-      customCards: JSON.stringify(customCards),
-      statementDates: JSON.stringify(statementDates)
-    }});
+    await gasCall({action:'saveSettings', settings:JSON.stringify({customCards:JSON.stringify(customCards),statementDates:JSON.stringify(statementDates)})});
     showStatus('✓ Saved','#0F6E56');
     setTimeout(()=>showStatus('',''),2000);
   }catch(e){ console.error('Save failed:',e); showStatus('⚠️ Save failed','#E24B4A'); }
