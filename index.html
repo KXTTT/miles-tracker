@@ -500,7 +500,14 @@ function renderFilterTabs(){
 }
 
 function setFilter(n){filterCard=n;renderFilterTabs();renderTxns()}
-function fmtDate(d){const[y,m,day]=d.split('-');return`${day} ${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][parseInt(m)-1]}`}
+function fmtDate(d){
+  if(!d||typeof d!=='string'||!d.includes('-')) return d||'—';
+  const parts=d.slice(0,10).split('-');
+  if(parts.length<3) return d;
+  const [y,m,day]=parts;
+  const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return`${day} ${months[parseInt(m)-1]||'?'} ${y}`;
+}
 function cap(s){return s.charAt(0).toUpperCase()+s.slice(1)}
 
 function updatePreview(){
@@ -700,7 +707,7 @@ async function addTransaction(){
   document.getElementById('inp-amount').value='';
   ['miles-preview','caps-note','promo-note','warn-note'].forEach(id=>document.getElementById(id).textContent='');
   renderAll();
-  await saveTxn(txn);
+  try{ await saveTxn(txn); }catch(e){ console.error('Cloud save failed:',e); showStatus('⚠️ Saved locally, cloud sync failed','#854F0B'); }
 }
 
 async function promptNewCard(){
@@ -722,9 +729,9 @@ async function promptNewCard(){
 }
 
 async function deleteTxn(id){
-  await deleteFromCloud(id);
   transactions=transactions.filter(t=>t.id!==id);
   renderAll();
+  try{ await deleteFromCloud(id); }catch(e){ console.error('Cloud delete failed:',e); }
 }
 
 function exportCSV(){
