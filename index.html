@@ -61,10 +61,10 @@ h1{font-size:20px;font-weight:500;margin-bottom:4px}
 .ftab.active{background:#1a1a1a;color:#fff;border-color:#1a1a1a}
 
 /* Transactions */
-.txn-header{display:grid;grid-template-columns:75px 1fr 135px 100px 95px 110px 26px;gap:6px;padding:0 12px;margin-bottom:4px}
+.txn-header{display:grid;grid-template-columns:75px 1fr 135px 130px 90px 85px 100px 26px;gap:6px;padding:0 12px;margin-bottom:4px}
 .txn-header span{font-size:11px;color:#aaa;text-transform:uppercase;letter-spacing:.04em}
 .txn-header span:nth-child(4),.txn-header span:nth-child(5),.txn-header span:nth-child(6){text-align:right}
-.txn-row{display:grid;grid-template-columns:75px 1fr 135px 100px 95px 110px 26px;gap:6px;align-items:center;background:#fff;border:0.5px solid rgba(0,0,0,0.1);border-radius:8px;padding:9px 12px;font-size:13px;margin-bottom:6px}
+.txn-row{display:grid;grid-template-columns:75px 1fr 135px 130px 90px 85px 100px 26px;gap:6px;align-items:center;background:#fff;border:0.5px solid rgba(0,0,0,0.1);border-radius:8px;padding:9px 12px;font-size:13px;margin-bottom:6px}
 .txn-date{color:#888;font-size:12px}
 .txn-merchant{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .txn-amt{text-align:right;font-weight:500}
@@ -108,8 +108,8 @@ h1{font-size:20px;font-weight:500;margin-bottom:4px}
 .settings-hint{font-size:10px;color:#aaa;margin-top:5px}
 @media(max-width:700px){
   .form-row{grid-template-columns:1fr 1fr}
-  .txn-header,.txn-row{grid-template-columns:65px 1fr 100px 75px 75px}
-  .txn-header span:nth-child(6),.txn-row .txn-expiry{display:none}
+  .txn-header,.txn-row{grid-template-columns:65px 1fr 90px 70px 70px}
+  .txn-header span:nth-child(4),.txn-row .txn-card,.txn-header span:nth-child(7),.txn-row .txn-expiry{display:none}
   .metric-grid{grid-template-columns:1fr 1fr}
 }
 
@@ -197,7 +197,7 @@ h1{font-size:20px;font-weight:500;margin-bottom:4px}
   </div>
   <div class="filter-tabs" id="filter-tabs"></div>
   <div class="txn-header">
-    <span>Date</span><span>Merchant</span><span>Category</span><span>Amount</span><span>Miles</span><span>Expiry</span><span></span>
+    <span>Date</span><span>Merchant</span><span>Category</span><span>Card</span><span>Amount</span><span>Miles</span><span>Expiry</span><span></span>
   </div>
   <div id="txn-list"></div>
 </div>
@@ -502,6 +502,7 @@ function renderTxns(){
       <span class="txn-date">${fmtDate(t.date)}</span>
       <span class="txn-merchant" title="${t.merchant}">${t.merchant}</span>
       <span><span class="cat-badge cat-${t.category}">${CAT_LABELS[t.category]||cap(t.category)}</span></span>
+      <span class="txn-card" style="font-size:11px;color:#888;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.card||'—'}</span>
       <span class="txn-amt">S$${t.amount.toFixed(2)}</span>
       <span class="txn-miles">${milesTxt}</span>
       <span class="txn-expiry">${t.expiry||'—'}</span>
