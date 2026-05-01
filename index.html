@@ -87,6 +87,7 @@ h1{font-size:20px;font-weight:500;margin-bottom:4px}
 .cat-transport{background:#FAEEDA;color:#633806}
 .cat-others{background:#f0ede6;color:#666}
 .cat-redeem{background:#2D1A6E;color:#C5B8F8}
+.cat-agoda_expedia{background:#1A4A3A;color:#7FDBBC}
 .empty-state{text-align:center;padding:2.5rem;color:#bbb;font-size:13px;border:0.5px dashed rgba(0,0,0,0.15);border-radius:12px}
 .legend{display:flex;gap:12px;margin-bottom:10px;flex-wrap:wrap}
 .legend-item{display:flex;align-items:center;gap:6px;font-size:12px;color:#888}
@@ -174,6 +175,9 @@ h1{font-size:20px;font-weight:500;margin-bottom:4px}
             <option value="transport">Transport / Petrol</option>
             <option value="others">Others</option>
           </optgroup>
+          <optgroup label="Hotel Bookings">
+            <option value="agoda_expedia">🏨 Agoda / Expedia (UOB PRVI)</option>
+          </optgroup>
           <optgroup label="Redemption">
             <option value="redeem">✈️ Redeem miles</option>
           </optgroup>
@@ -212,35 +216,42 @@ const CARDS = {
   'Citi PremierMiles': {
     color:'#185FA5', capReset:'calendar', expiry:'Never expire', expiryYears:null,
     base:1.2,
-    categories:{online:1.2,contactless:1.2,ocbc_promo:1.2,regional:2.2,overseas:2.2,dining:1.2,travel:1.2,groceries:1.2,shopping:1.2,transport:1.2,others:1.2},
+    categories:{online:1.2,contactless:1.2,ocbc_promo:1.2,regional:2.2,overseas:2.2,dining:1.2,travel:1.2,groceries:1.2,shopping:1.2,transport:1.2,agoda_expedia:1.2,others:1.2},
     caps:[], // no bonus cap
     capsLabel:'No cap — miles never expire · 2.2 mpd on all overseas (FCY) spend'
   },
   'Citi Rewards': {
     color:'#3C3489', capReset:'statement', expiry:'Expire 5 years from earn', expiryYears:5,
     base:0.4,
-    categories:{online:4.0,contactless:0.4,ocbc_promo:0.4,regional:0.4,overseas:0.4,dining:4.0,shopping:4.0,transport:4.0,groceries:0.4,travel:0.4,others:0.4},
+    categories:{online:4.0,contactless:0.4,ocbc_promo:0.4,regional:0.4,overseas:0.4,dining:4.0,shopping:4.0,transport:4.0,groceries:0.4,travel:0.4,agoda_expedia:0.4,others:0.4},
     caps:[{label:'Online & shopping bonus',categories:['online','dining','shopping','transport'],capSGD:1000}],
     capsLabel:'Cap resets on statement date · S$1,000/mth on online, dining, shopping & transport combined'
   },
   'DBS Women World': {
     color:'#3B6D11', capReset:'calendar', expiry:'Expire 1 year from earn', expiryYears:1,
     base:0.4,
-    categories:{online:4.0,contactless:0.4,ocbc_promo:0.4,regional:0.4,overseas:0.4,dining:0.4,shopping:0.4,travel:0.4,groceries:0.4,transport:0.4,others:0.4},
+    categories:{online:4.0,contactless:0.4,ocbc_promo:0.4,regional:0.4,overseas:0.4,dining:0.4,shopping:0.4,travel:0.4,groceries:0.4,transport:0.4,agoda_expedia:0.4,others:0.4},
     caps:[{label:'Online bonus',categories:['online'],capSGD:1000}],
     capsLabel:'Cap resets 1st of month · S$1,000/calendar month on ALL online spend · Points expire in 1 year!'
   },
-  'UOB PRVI Miles': {
+  'UOB PRVI Miles (Me)': {
     color:'#1A5C8A', capReset:'calendar', expiry:'Expire 2 years from earn', expiryYears:2,
     base:1.4,
-    categories:{online:1.4,contactless:1.4,ocbc_promo:1.4,regional:3.0,overseas:2.4,dining:1.4,travel:1.4,groceries:1.4,shopping:1.4,transport:1.4,others:1.4},
-    caps:[], // no cap on any category
-    capsLabel:'No cap on miles earned · 3 mpd on MYR/IDR/THB/VND spend · 2.4 mpd other FCY · 1.4 mpd local'
+    categories:{online:1.4,contactless:1.4,ocbc_promo:1.4,regional:3.0,overseas:2.4,agoda_expedia:8.0,dining:1.4,travel:1.4,groceries:1.4,shopping:1.4,transport:1.4,others:1.4},
+    caps:[],
+    capsLabel:'No cap · 3 mpd MYR/IDR/THB/VND · 2.4 mpd other FCY · 8 mpd Agoda (book via agoda.com/prvimiles, prepaid only) · 8 mpd Expedia hotels (book via expedia.com.sg/prvimiles, flights only 3 mpd)'
+  },
+  'UOB PRVI Miles (Spouse)': {
+    color:'#2E86AB', capReset:'calendar', expiry:'Expire 2 years from earn', expiryYears:2,
+    base:1.4,
+    categories:{online:1.4,contactless:1.4,ocbc_promo:1.4,regional:3.0,overseas:2.4,agoda_expedia:8.0,dining:1.4,travel:1.4,groceries:1.4,shopping:1.4,transport:1.4,others:1.4},
+    caps:[],
+    capsLabel:'No cap · 3 mpd MYR/IDR/THB/VND · 2.4 mpd other FCY · 8 mpd Agoda (book via agoda.com/prvimiles, prepaid only) · 8 mpd Expedia hotels (book via expedia.com.sg/prvimiles, flights only 3 mpd)'
   },
   'UOB Preferred Visa': {
     color:'#854F0B', capReset:'calendar', expiry:'Expire 2 years from earn', expiryYears:2,
     base:0.4,
-    categories:{online:4.0,contactless:4.0,ocbc_promo:0.4,regional:0.4,overseas:0.4,dining:0.4,shopping:0.4,groceries:0.4,travel:0.4,transport:0.4,others:0.4},
+    categories:{online:4.0,contactless:4.0,ocbc_promo:0.4,regional:0.4,overseas:0.4,dining:0.4,shopping:0.4,groceries:0.4,travel:0.4,transport:0.4,agoda_expedia:0.4,others:0.4},
     caps:[
       {label:'Mobile contactless',categories:['contactless','transport'],capSGD:600},
       {label:'Selected online',categories:['online'],capSGD:600}
@@ -251,7 +262,7 @@ const CARDS = {
     color:'#533806', capReset:'statement', expiry:'Expire 2 years from earn', expiryYears:2,
     base:0.4,
     // 4 mpd on FCY (overseas/regional) and local contactless/petrol. NOT online in SGD.
-    categories:{online:0.4,contactless:4.0,ocbc_promo:0.4,regional:4.0,overseas:4.0,dining:0.4,shopping:0.4,groceries:0.4,travel:0.4,transport:4.0,others:0.4},
+    categories:{online:0.4,contactless:4.0,ocbc_promo:0.4,regional:4.0,overseas:4.0,dining:0.4,shopping:0.4,groceries:0.4,travel:0.4,transport:4.0,agoda_expedia:0.4,others:0.4},
     caps:[
       {label:'Overseas (FCY)',categories:['overseas','regional'],capSGD:1200},
       {label:'Contactless & petrol',categories:['contactless','transport'],capSGD:1200}
@@ -268,7 +279,7 @@ const CARDS = {
   'OCBC Rewards': {
     color:'#0C447C', capReset:'calendar', expiry:'Expire 2 years from earn', expiryYears:2,
     base:0.4,
-    categories:{online:4.0,contactless:0.4,ocbc_promo:6.0,regional:0.4,overseas:0.4,dining:0.4,shopping:4.0,groceries:0.4,travel:0.4,transport:0.4,others:0.4},
+    categories:{online:4.0,contactless:0.4,ocbc_promo:6.0,regional:0.4,overseas:0.4,dining:0.4,shopping:4.0,groceries:0.4,travel:0.4,transport:0.4,agoda_expedia:0.4,others:0.4},
     caps:[
       {label:'4 mpd bonus (online & shopping)',categories:['online','shopping'],capSGD:1110},
       {label:'6 mpd promo (Shopee/Lazada/Watsons)',categories:['ocbc_promo'],capSGD:1000}
@@ -279,14 +290,14 @@ const CARDS = {
   'HSBC Revolution': {
     color:'#993556', capReset:'calendar', expiry:'Expire ~37 months from earn', expiryYears:3,
     base:0.4,
-    categories:{online:4.0,contactless:4.0,ocbc_promo:0.4,regional:0.4,overseas:0.4,dining:4.0,shopping:4.0,transport:4.0,groceries:0.4,travel:4.0,others:0.4},
+    categories:{online:4.0,contactless:4.0,ocbc_promo:0.4,regional:0.4,overseas:0.4,dining:4.0,shopping:4.0,transport:4.0,groceries:0.4,travel:4.0,agoda_expedia:0.4,others:0.4},
     caps:[{label:'Online + contactless combined',categories:['online','contactless','dining','shopping','transport','travel'],capSGD:1500}],
     capsLabel:'Cap resets 1st of month · S$1,500/mth combined online + contactless · Bonus credited end of following month'
   }
 };
 
 const CAT_LABELS={
-  online:'Online (SGD)',contactless:'Contactless',ocbc_promo:'OCBC 6 mpd promo',redeem:'Miles redeemed',
+  online:'Online (SGD)',contactless:'Contactless',ocbc_promo:'OCBC 6 mpd promo',agoda_expedia:'Agoda/Expedia',redeem:'Miles redeemed',
   regional:'Regional (MY/ID/TH/VN)',overseas:'Other overseas (FCY)',
   dining:'Dining',travel:'Travel',groceries:'Groceries',
   shopping:'Shopping',transport:'Transport/Petrol',others:'Others'
@@ -577,7 +588,10 @@ function updatePreview(){
   // Special info notes
   if(cat==='ocbc_promo') promoNote.textContent=c.promoLabel||'';
   else if(cat==='regional'&&card==='UOB PRVI Miles'){promoNote.style.color='#1A5C8A';promoNote.textContent='3 mpd on spend in MYR, IDR, THB or VND · No cap';}
-  else if(c&&c.capsLabel) capsNote.textContent=c.capsLabel;
+  } else if(cat==='agoda_expedia'){
+    if(card==='UOB PRVI Miles'){promoNote.style.color='#1A4A3A';promoNote.textContent='8 mpd on Agoda & Expedia — must book via uob.com.sg/PRVI-miles · Cap S$2,000/mth, resets 1st of month';}
+    else if(c&&c.capsLabel) capsNote.textContent=c.capsLabel;
+  } else if(c&&c.capsLabel) capsNote.textContent=c.capsLabel;
 
   // Detailed cap warning
   if(c&&c.caps&&c.caps.length){
