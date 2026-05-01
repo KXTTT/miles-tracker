@@ -587,11 +587,9 @@ function updatePreview(){
 
   // Special info notes
   if(cat==='ocbc_promo') promoNote.textContent=c.promoLabel||'';
-  else if(cat==='regional'&&card==='UOB PRVI Miles'){promoNote.style.color='#1A5C8A';promoNote.textContent='3 mpd on spend in MYR, IDR, THB or VND · No cap';}
-  } else if(cat==='agoda_expedia'){
-    if(card==='UOB PRVI Miles'){promoNote.style.color='#1A4A3A';promoNote.textContent='8 mpd on Agoda & Expedia — must book via uob.com.sg/PRVI-miles · Cap S$2,000/mth, resets 1st of month';}
-    else if(c&&c.capsLabel) capsNote.textContent=c.capsLabel;
-  } else if(c&&c.capsLabel) capsNote.textContent=c.capsLabel;
+  else if(cat==='regional'&&(card==='UOB PRVI Miles (Me)'||card==='UOB PRVI Miles (Spouse)')){promoNote.style.color='#1A5C8A';promoNote.textContent='3 mpd on spend charged in MYR, IDR, THB or VND · No cap';}
+  else if(cat==='agoda_expedia'&&(card==='UOB PRVI Miles (Me)'||card==='UOB PRVI Miles (Spouse)')){promoNote.style.color='#1A4A3A';promoNote.textContent='8 mpd on Agoda & Expedia — book via agoda.com/prvimiles or expedia.com.sg/prvimiles · No cap';}
+  else if(c&&c.capsLabel) capsNote.textContent=c.capsLabel;
 
   // Detailed cap warning
   if(c&&c.caps&&c.caps.length){
