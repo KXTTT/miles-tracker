@@ -86,6 +86,7 @@ h1{font-size:20px;font-weight:500;margin-bottom:4px}
 .cat-shopping{background:#EEEDFE;color:#3C3489}
 .cat-transport{background:#FAEEDA;color:#633806}
 .cat-others{background:#f0ede6;color:#666}
+.cat-redeem{background:#2D1A6E;color:#C5B8F8}
 .empty-state{text-align:center;padding:2.5rem;color:#bbb;font-size:13px;border:0.5px dashed rgba(0,0,0,0.15);border-radius:12px}
 .legend{display:flex;gap:12px;margin-bottom:10px;flex-wrap:wrap}
 .legend-item{display:flex;align-items:center;gap:6px;font-size:12px;color:#888}
@@ -173,10 +174,13 @@ h1{font-size:20px;font-weight:500;margin-bottom:4px}
             <option value="transport">Transport / Petrol</option>
             <option value="others">Others</option>
           </optgroup>
+          <optgroup label="Redemption">
+            <option value="redeem">✈️ Redeem miles</option>
+          </optgroup>
         </select>
       </div>
       <div class="form-group"><label>Card</label><select id="inp-card"></select></div>
-      <div class="form-group"><label>Amount (S$)</label><input type="number" id="inp-amount" placeholder="0.00" min="0" step="0.01"/></div>
+      <div class="form-group"><label id="amt-label">Amount (S$)</label><input type="number" id="inp-amount" placeholder="0.00" min="0" step="0.01"/></div>
     </div>
     <div class="preview-row">
       <div class="miles-preview" id="miles-preview"></div>
@@ -282,7 +286,7 @@ const CARDS = {
 };
 
 const CAT_LABELS={
-  online:'Online (SGD)',contactless:'Contactless',ocbc_promo:'OCBC 6 mpd promo',
+  online:'Online (SGD)',contactless:'Contactless',ocbc_promo:'OCBC 6 mpd promo',redeem:'Miles redeemed',
   regional:'Regional (MY/ID/TH/VN)',overseas:'Other overseas (FCY)',
   dining:'Dining',travel:'Travel',groceries:'Groceries',
   shopping:'Shopping',transport:'Transport/Petrol',others:'Others'
@@ -295,6 +299,7 @@ let filterCard='All';
 function allCards(){return{...CARDS,...customCards}}
 
 function getMpd(cn,cat){
+  if(cat==='redeem') return 0; // redemptions handled separately
   const c=allCards()[cn];
   if(!c)return 1.2;
   return(c.categories&&c.categories[cat]!=null)?c.categories[cat]:c.base;
@@ -328,7 +333,10 @@ function computeMilesUncapped(cn,cat,amt){return Math.round(getMpd(cn,cat)*amt)}
 
 function computeExpiry(cn,txnDate){
   const c=allCards()[cn];if(!c||!c.expiryYears)return'Never';
-  const d=new Date(txnDate);d.setFullYear(d.getFullYear()+c.expiryYears);
+  if(!txnDate||!String(txnDate).includes('-'))return'—';
+  // Parse date parts directly to avoid timezone shifting
+  const parts=String(txnDate).slice(0,10).split('-');
+  const d=new Date(parseInt(parts[0])+c.expiryYears, parseInt(parts[1])-1, parseInt(parts[2]));
   return d.toLocaleDateString('en-SG',{day:'2-digit',month:'short',year:'numeric'});
 }
 
@@ -482,16 +490,25 @@ function renderTxns(){
   const list=document.getElementById('txn-list');
   const filtered=filterCard==='All'?transactions:transactions.filter(t=>t.card===filterCard);
   if(!filtered.length){list.innerHTML='<div class="empty-state">No transactions yet. Add one above.</div>';return}
-  list.innerHTML=[...filtered].sort((a,b)=>b.date.localeCompare(a.date)).map(t=>`
-    <div class="txn-row">
+  const sorted=[...filtered].sort((a,b)=>b.date.localeCompare(a.date));
+  list.innerHTML='';
+  sorted.forEach(t=>{
+    const row=document.createElement('div');
+    row.className='txn-row';
+    const milesTxt = t.miles<0
+      ? `<span style="color:#E24B4A">${t.miles.toLocaleString()}</span>`
+      : `<span style="color:#0F6E56">+${t.miles.toLocaleString()}</span>`;
+    row.innerHTML=`
       <span class="txn-date">${fmtDate(t.date)}</span>
       <span class="txn-merchant" title="${t.merchant}">${t.merchant}</span>
       <span><span class="cat-badge cat-${t.category}">${CAT_LABELS[t.category]||cap(t.category)}</span></span>
       <span class="txn-amt">S$${t.amount.toFixed(2)}</span>
-      <span class="txn-miles">+${t.miles.toLocaleString()}</span>
-      <span class="txn-expiry">${t.expiry}</span>
-      <button class="btn-del" onclick="deleteTxn('${t.id}')">×</button>
-    </div>`).join('');
+      <span class="txn-miles">${milesTxt}</span>
+      <span class="txn-expiry">${t.expiry||'—'}</span>
+      <button class="btn-del">×</button>`;
+    row.querySelector('.btn-del').addEventListener('click',()=>deleteTxn(t.id));
+    list.appendChild(row);
+  });
 }
 
 function renderFilterTabs(){
@@ -521,6 +538,13 @@ function updatePreview(){
   capsNote.textContent='';promoNote.textContent='';warnNote.textContent='';promoNote.style.color='#0C447C';
 
   if(!card||card==='__new__'||isNaN(amount)||amount<=0){preview.textContent='';return}
+  // Update label
+  const amtLabel=document.getElementById('amt-label');
+  if(amtLabel) amtLabel.textContent = cat==='redeem'?'Miles to redeem':'Amount (S$)';
+  if(cat==='redeem'){
+    preview.textContent=`Redeeming ${Math.abs(amount).toLocaleString()} miles from ${card}`;
+    return;
+  }
 
   const c=allCards()[card];
   const bonusMpd=getMpd(card,cat);
@@ -698,6 +722,18 @@ async function addTransaction(){
   const amount=parseFloat(document.getElementById('inp-amount').value);
   if(card==='__new__'){promptNewCard();return}
   if(!date||!merchant||isNaN(amount)||amount<=0){alert('Please fill in all fields.');return}
+  // For redemptions, amount field = miles to redeem, not S$
+  if(cat==='redeem'){
+    const redeemMiles = -Math.abs(amount);
+    const txn={id:Date.now().toString(),date,merchant,category:'redeem',card,amount:0,miles:redeemMiles,expiry:'—'};
+    transactions.push(txn);
+    document.getElementById('inp-merchant').value='';
+    document.getElementById('inp-amount').value='';
+    ['miles-preview','caps-note','promo-note','warn-note'].forEach(id=>document.getElementById(id).textContent='');
+    renderAll();
+    try{ await saveTxn(txn); }catch(e){ console.error('Cloud save failed:',e); showStatus('⚠️ Saved locally, cloud sync failed','#854F0B'); }
+    return;
+  }
   const txnId=Date.now().toString();
   const miles=computeMilesCapped(card,cat,amount,date,null);
   const expiry=computeExpiry(card,date);
